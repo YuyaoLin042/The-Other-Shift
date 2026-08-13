@@ -7,6 +7,21 @@ export const ITEM_LIBRARY = [
   { id: "rice", name: "东北大米", icon: "🍚", hint: "利润不高但很稳", price: 12 },
 ];
 
+const MORE_EVENTS = [
+  ["sale","刚下班的川菜厨师","围裙上还沾着花椒","后厨断货了，借我两包火锅底料，明早双倍还你。","处理同行请求",["按进价借给他","按夜间价卖出","换他家的招牌菜"]],
+  ["sale","带女儿买年货的爸爸","小女孩抱着纸灯笼","今年回不了国，想让家里有点过年的味道。","搭配年货篮",["饺子和火锅底料","做红色礼篮","只拿便宜泡面"]],
+  ["sale","演出结束的地下乐队","四个人只剩十一英镑","需要能分着吃、还不会弄脏乐器的东西。","给乐队配夜宵",["做四份干拌面","奶茶少收一杯","卖一袋米"]],
+  ["sale","修地铁的夜班工人","反光背心全是灰","隧道还要修八小时，来点热的、咸的，别太贵。","准备夜班餐",["热汤面加煎饺","特辣火锅套餐","只卖奶茶"]],
+  ["sale","附近新来的法国店主","拿翻译软件逐字念","想找一种能让客人记住我的中国调味料。","认识新邻居",["试吃辣椒酱","分享融合菜谱","高价卖秘方"]],
+  ["street","检查消防通道的市政人员","在后门停了很久","纸箱挡住逃生通道。现在处理，还是正式开单？","应付检查",["立刻清理","接受罚单","拿图纸解释"]],
+  ["street","想画外墙的涂鸦青年","背包装满喷漆罐","让我画一条中国龙，后巷以后就是打卡点。","决定外墙形象",["画整面龙墙","画小招牌","拒绝"]],
+  ["supply","开面包车的华人农场主","车里是刚摘的亚洲蔬菜","你愿不愿意每周固定收我的小批量货？","选择供应商",["签每周供货","先试卖一周","压到最低价"]],
+  ["supply","港口打来的海关电话","茶叶标签翻译有问题","今天不补材料，货就要退回原产地。","救回货物",["连夜补文件","找清关代理","托关系提货"]],
+  ["explore","经营二十年的杂货店老板娘","她知道每条街的租金","带你看没挂牌的铺面，但要分享供应商。","交换扩店情报",["交换线索","只看铺面","给假线索"]],
+  ["explore","熟悉小路的外卖骑手","他说知道一座空冷库","给我今晚的饭，我带你从河边小路过去。","探索隐藏冷库",["立刻出发","先画地图","以后再说"]],
+  ["sale","刚搬来的尼日利亚妈妈","推车里坐着两个孩子","中国米适合做我的家乡饭吗？你教我挑好吗？","帮助新邻居",["介绍东北大米","做试吃","推荐礼盒米"]],
+].map((e,n)=>({type:e[0],who:e[1],title:e[2],text:e[3],goal:e[4],choices:e[5].map((label,i)=>({id:`extra_${n}_${i}`,label,detail:["稳妥处理，建立长期关系","收益与风险比较平衡","大胆选择，结果难以预料"][i],cash:[18,28,42][i],fame:[8,4,-3][i],risk:[0,2,7][i],intel:e[0]==="explore"?i+1:0}))}));
+
 const EVENTS = [
   { type:"sale", icon:"👩‍🎓", who:"赶论文的中国留学生", title:"还有十分钟宿舍就关门", text:"老板！给我来点能熬过今晚的，越快越好！", goal:"卖出夜宵", choices:[
     {id:"noodles",label:"泡面 + 辣椒酱",icon:"🍜",detail:"便宜、稳妥，学生会再来",cash:18,fame:5,risk:0},
@@ -40,20 +55,22 @@ const clamp = (n,min=0,max=100)=>Math.max(min,Math.min(max,n));
 export function generateCode(){const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";return Array.from({length:6},()=>pick(a)).join("");}
 function levelFor(cash){return cash>=1200?4:cash>=600?3:cash>=260?2:1;}
 export function makeEvent(state){
-  let pool=EVENTS;
+  let pool=[...EVENTS,...MORE_EVENTS];
   if(state.turn<2) pool=EVENTS.filter(e=>e.type==="sale");
   else if(state.currentPlayer==="moon") pool=EVENTS.filter(e=>e.type!=="sale");
-  return structuredClone(pick(pool));
+  const recent=state.recentVisitors||[];const fresh=pool.filter(e=>!recent.includes(e.who));
+  return structuredClone(pick(fresh.length?fresh:pool));
 }
-export function createInitialState(code,name,token){const s={version:3,code,day:1,turn:0,currentPlayer:"sun",shiftHours:12,customersThisShift:0,players:[{id:"sun",name,token}],cash:120,fame:5,risk:8,intel:0,level:1,city:"伦敦 · 东区",storeName:"好运来食品店",inventory:ITEM_LIBRARY.map(x=>({...x,count:3})),event:null,note:"",lastOutcome:"",worldNews:"伦敦东区新开了一家不起眼的中国食品店。",history:[]};s.event=makeEvent(s);return s;}
+export function createInitialState(code,name,token){const s={version:4,code,day:1,turn:0,currentPlayer:"sun",shiftHours:12,customersThisShift:0,recentVisitors:[],players:[{id:"sun",name,token}],cash:120,fame:5,risk:8,intel:0,level:1,city:"伦敦 · 东区",storeName:"好运来食品店",inventory:ITEM_LIBRARY.map(x=>({...x,count:3})),event:null,note:"",lastOutcome:"",worldNews:"伦敦东区新开了一家不起眼的中国食品店。",history:[]};s.event=makeEvent(s);return s;}
 export function migrateState(old){
-  if(old?.version===3)return old;
+  if(old?.version===4)return old;
+  if(old?.version===3)return {...old,version:4,recentVisitors:old.recentVisitors||[]};
   if(old?.version===2){return {...old,version:3,shiftHours:12,customersThisShift:0,worldNews:old.worldNews||"伦敦东区开始有人谈论这家新开的中国食品店。"};}
   const s=createInitialState(old.code,old.players?.[0]?.name||"店长",old.players?.[0]?.token);
   s.players=old.players||s.players;s.currentPlayer=old.currentPlayer||"sun";s.day=old.day||1;s.turn=old.turn||0;s.cash=Math.max(120,(old.coins||0)*5);return s;
 }
 function interpret(action,event,choice){
-  const text=(action||"").trim();let cash=0,fame=0,risk=0,intel=0,hours=3;
+  const text=(action||"").trim();let cash=0,fame=0,risk=0,intel=0,hours=1;
   let story=text?`你还特别吩咐：“${text}”。`:"你按常规方式完成了这笔生意。";
   let world="街区生活照常继续。";
   if(/最辣|辣椒|爆辣|魔鬼辣/.test(text)){cash+=8;fame+=4;risk+=5;story+=` 你翻出柜台下最辣的辣椒酱，红得像警报灯。${event.who}被辣得瞬间清醒。`;world="一张“神秘中超爆辣套餐”的照片传遍了本地留学生群，中超门口开始有人挑战辣度。";}
@@ -75,7 +92,7 @@ export function resolveTurn(raw,actorId,choiceId,action,note,endShift=false){
   const result=cashChange>=0?`收入 £${cashChange}`:`支出 £${Math.abs(cashChange)}`;
   next.lastOutcome=`${actor.name}选择了「${choice.label}」：${custom.story} ${result}，口碑${fameChange>=0?"+":""}${fameChange}。${next.level>oldLevel?"店铺可以升级了！":""}`;next.worldNews=custom.world;
   next.note=(note||"").slice(0,30);next.history.unshift({id:crypto.randomUUID(),label:`第 ${next.day} 天 · ${actor.name}`,text:next.lastOutcome});next.history=next.history.slice(0,8);
-  next.turn++;next.customersThisShift++;next.shiftHours=Math.max(0,next.shiftHours-custom.hours);
+  next.turn++;next.customersThisShift++;next.shiftHours=Math.max(0,next.shiftHours-custom.hours);next.recentVisitors=[next.event.who,...(next.recentVisitors||[]).filter(x=>x!==next.event.who)].slice(0,6);
   if(endShift||next.shiftHours===0){next.currentPlayer=next.currentPlayer==="sun"?"moon":"sun";if(next.currentPlayer==="sun")next.day++;next.shiftHours=12;next.customersThisShift=0;}
   next.event=makeEvent(next);return next;
 }

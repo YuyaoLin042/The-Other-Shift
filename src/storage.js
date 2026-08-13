@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { createInitialState, generateCode, resolveTurn } from "./game.js";
+import { createInitialState, endShift, generateCode, resolveTurn } from "./game.js";
 
 const SESSION_KEY = "other-shift-session";
 const ROOMS_KEY = "other-shift-local-rooms";
@@ -64,12 +64,13 @@ export async function loadRoom(session) {
   return state;
 }
 
-export async function act(session, itemId, note) {
+export async function act(session, itemId, action, note, finish = false) {
   const state = await loadRoom(session);
-  const next = resolveTurn(state, session.playerId, itemId, note);
+  const next = resolveTurn(state, session.playerId, itemId, action, note, finish);
   await writeRoom(next);
   return next;
 }
+export async function handOver(session,note){const state=await loadRoom(session);const next=endShift(state,session.playerId,note);await writeRoom(next);return next;}
 
 export async function addDemoPartner(session, name = "欧洲的朋友") {
   const state = await loadRoom(session);

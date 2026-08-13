@@ -45,22 +45,39 @@ export function makeEvent(state){
   else if(state.currentPlayer==="moon") pool=EVENTS.filter(e=>e.type!=="sale");
   return structuredClone(pick(pool));
 }
-export function createInitialState(code,name,token){const s={version:2,code,day:1,turn:0,currentPlayer:"sun",players:[{id:"sun",name,token}],cash:120,fame:5,risk:8,intel:0,level:1,city:"伦敦 · 东区",storeName:"好运来食品店",inventory:ITEM_LIBRARY.map(x=>({...x,count:3})),event:null,note:"",lastOutcome:"",history:[]};s.event=makeEvent(s);return s;}
+export function createInitialState(code,name,token){const s={version:3,code,day:1,turn:0,currentPlayer:"sun",shiftHours:12,customersThisShift:0,players:[{id:"sun",name,token}],cash:120,fame:5,risk:8,intel:0,level:1,city:"伦敦 · 东区",storeName:"好运来食品店",inventory:ITEM_LIBRARY.map(x=>({...x,count:3})),event:null,note:"",lastOutcome:"",worldNews:"伦敦东区新开了一家不起眼的中国食品店。",history:[]};s.event=makeEvent(s);return s;}
 export function migrateState(old){
-  if(old?.version===2)return old;
+  if(old?.version===3)return old;
+  if(old?.version===2){return {...old,version:3,shiftHours:12,customersThisShift:0,worldNews:old.worldNews||"伦敦东区开始有人谈论这家新开的中国食品店。"};}
   const s=createInitialState(old.code,old.players?.[0]?.name||"店长",old.players?.[0]?.token);
   s.players=old.players||s.players;s.currentPlayer=old.currentPlayer||"sun";s.day=old.day||1;s.turn=old.turn||0;s.cash=Math.max(120,(old.coins||0)*5);return s;
 }
-export function resolveTurn(raw,actorId,choiceId,note){
+function interpret(action,event,choice){
+  const text=(action||"").trim();let cash=0,fame=0,risk=0,intel=0,hours=3;
+  let story=text?`你还特别吩咐：“${text}”。`:"你按常规方式完成了这笔生意。";
+  let world="街区生活照常继续。";
+  if(/最辣|辣椒|爆辣|魔鬼辣/.test(text)){cash+=8;fame+=4;risk+=5;story+=` 你翻出柜台下最辣的辣椒酱，红得像警报灯。${event.who}被辣得瞬间清醒。`;world="一张“神秘中超爆辣套餐”的照片传遍了本地留学生群，中超门口开始有人挑战辣度。";}
+  if(/论文|熬夜|通宵|醒一晚|肝/.test(text)){cash+=5;fame+=6;risk+=2;story+=" 对方真的精神到天亮，一口气赶完了论文。";world="第二天，大学校园流传着一家能让论文起死回生的中国超市，夜间学生客流上升。";}
+  if(/免费|送他|赠送|不要钱/.test(text)){cash-=choice.cash;fame+=12;story+=" 你没有收钱，这份人情被对方牢牢记住。";world="本地互助群开始推荐这家有人情味的小店，但账本上的数字变薄了。";}
+  if(/报警|警察|监控/.test(text)){risk-=8;intel+=2;story+=" 你保存证据并联系警方备案。";world="警方增加了附近巡逻，街头势力暂时收敛，却开始打听店主是谁。";}
+  if(/跟踪|调查|套话|卧底/.test(text)){risk+=6;intel+=4;hours=4;story+=" 你花了额外时间顺藤摸瓜，记下几个关键名字。";world="合伙人掌握了一条地下供货网络的线索，地图上出现了新的可疑仓库。";}
+  if(/菜谱|教.*做|试吃/.test(text)){cash+=3;fame+=9;story+=" 你现场讲了吃法，试吃香味把路人也吸引进店。";world="附近居民开始把这里当成认识中国食物的窗口，周末家庭客流增加。";}
+  if(!text)world=`${event.who}带着「${choice.label}」离开，店里又迎来下一位客人。`;
+  return {cash,fame,risk,intel,hours,story,world};
+}
+export function resolveTurn(raw,actorId,choiceId,action,note,endShift=false){
   const next=structuredClone(migrateState(raw));const actor=next.players.find(p=>p.id===actorId);
   if(!actor||next.currentPlayer!==actorId)throw new Error("现在轮到另一位合伙人值班");
   const choice=next.event.choices.find(c=>c.id===choiceId);if(!choice)throw new Error("请先选择一个行动");
-  next.cash=Math.max(0,next.cash+choice.cash);next.fame=clamp(next.fame+choice.fame);next.risk=clamp(next.risk+choice.risk);next.intel=Math.max(0,next.intel+(choice.intel||0));
+  const custom=interpret(action,next.event,choice);const cashChange=choice.cash+custom.cash,fameChange=choice.fame+custom.fame;
+  next.cash=Math.max(0,next.cash+cashChange);next.fame=clamp(next.fame+fameChange);next.risk=clamp(next.risk+choice.risk+custom.risk);next.intel=Math.max(0,next.intel+(choice.intel||0)+custom.intel);
   const oldLevel=next.level;next.level=levelFor(next.cash);
-  const result=choice.cash>=0?`收入 £${choice.cash}`:`支出 £${Math.abs(choice.cash)}`;
-  next.lastOutcome=`${actor.name}选择了「${choice.label}」：${result}，口碑${choice.fame>=0?"+":""}${choice.fame}。${next.level>oldLevel?" 店铺可以升级了！":""}`;
+  const result=cashChange>=0?`收入 £${cashChange}`:`支出 £${Math.abs(cashChange)}`;
+  next.lastOutcome=`${actor.name}选择了「${choice.label}」：${custom.story} ${result}，口碑${fameChange>=0?"+":""}${fameChange}。${next.level>oldLevel?"店铺可以升级了！":""}`;next.worldNews=custom.world;
   next.note=(note||"").slice(0,30);next.history.unshift({id:crypto.randomUUID(),label:`第 ${next.day} 天 · ${actor.name}`,text:next.lastOutcome});next.history=next.history.slice(0,8);
-  next.turn++;next.currentPlayer=next.currentPlayer==="sun"?"moon":"sun";if(next.currentPlayer==="sun")next.day++;
+  next.turn++;next.customersThisShift++;next.shiftHours=Math.max(0,next.shiftHours-custom.hours);
+  if(endShift||next.shiftHours===0){next.currentPlayer=next.currentPlayer==="sun"?"moon":"sun";if(next.currentPlayer==="sun")next.day++;next.shiftHours=12;next.customersThisShift=0;}
   next.event=makeEvent(next);return next;
 }
+export function endShift(raw,actorId,note=""){const next=structuredClone(migrateState(raw));if(next.currentPlayer!==actorId)throw new Error("现在不是你的班次");next.note=(note||"提前交班").slice(0,30);next.currentPlayer=next.currentPlayer==="sun"?"moon":"sun";if(next.currentPlayer==="sun")next.day++;next.shiftHours=12;next.customersThisShift=0;next.lastOutcome="合伙人提前结束了本班，店铺钥匙已交给下一班。";next.event=makeEvent(next);return next;}
 export function safeState(state){return migrateState(state);}

@@ -1,113 +1,17 @@
-import { act, addDemoPartner, clearSession, createRoom, getSession, joinRoom, loadRoom, saveSession, storageMode } from "./storage.js";
-
-const view = { state: null, session: null, mode: "home", selected: null, busy: false, error: "" };
-const escapeHtml = (value = "") => String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
-
-function landing() {
-  return `<main class="landing-shell"><div class="grain"></div>
-    <nav class="landing-nav"><span class="tiny-sign">OPEN · BETWEEN TIME ZONES</span><span>☼ / ◐</span></nav>
-    <section class="landing"><div class="landing-copy"><p class="eyebrow">双人异步随机叙事游戏</p><h1>时差<br>便利店</h1>
-      <p class="intro">你关店以后，另一个时区的人继续营业。每次递出的物品，都会让这家店和这座城市变得不太一样。</p>
-      <div class="landing-actions"><button class="primary" data-mode="create">开一家新店 <span>→</span></button><button class="text-button" data-mode="join">凭房间码来接班</button></div>
-      <p class="mode-note">${storageMode === "cloud" ? "云端房间已连接，可以跨设备接班。" : "当前是本地 Demo 模式；连接数据库后即可跨设备游玩。"}</p>
-    </div><div class="store-window" aria-label="夜间便利店插画"><div class="moon">☾</div><div class="awning"><i></i><i></i><i></i><i></i><i></i></div><div class="store-sign">THE OTHER SHIFT<small>24 HOURS, TWO PEOPLE</small></div><div class="window-pane"><span class="shelf shelf-a">☕　▣　☂</span><span class="clerk">◉</span><span class="shelf shelf-b">▤　◌　▥</span></div><div class="door"><span>OPEN</span></div><div class="pavement"></div></div></section>
-    ${view.mode === "home" ? "" : entryModal()}
-  </main>`;
-}
-
-function entryModal() {
-  const join = view.mode === "join";
-  return `<div class="modal-backdrop"><section class="entry-card"><button class="close" data-mode="home" aria-label="关闭">×</button><p class="eyebrow">${join ? "NEXT SHIFT" : "NEW STORE"}</p><h2>${join ? "找到朋友的便利店" : "给新店挂上灯牌"}</h2>
-    <label>你的值班名<input id="name" maxlength="12" placeholder="例如：柚子"></label>
-    ${join ? '<label>六位房间码<input id="code" class="code-input" maxlength="6" placeholder="MOON24"></label>' : ""}
-    ${view.error ? `<p class="error">${escapeHtml(view.error)}</p>` : ""}<button class="primary wide" id="enter">${view.busy ? "正在亮灯…" : join ? "加入并接班" : "开始第一班"}</button></section></div>`;
-}
-
-function stats(state) {
-  return [["零钱", `${state.coins}¤`], ["温度", state.warmth], ["怪事", state.oddness], ["口碑", state.reputation]].map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${value}</strong></div>`).join("");
-}
-
-function game() {
-  const state = view.state;
-  const session = view.session;
-  const me = state.players.find((p) => p.id === session.playerId);
-  const partner = state.players.find((p) => p.id !== session.playerId);
-  const myTurn = state.currentPlayer === session.playerId;
-  return `<main class="game-shell"><div class="grain"></div><header class="game-header"><div><p class="eyebrow">THE OTHER SHIFT</p><h1>时差便利店</h1></div><div class="room-chip"><span>房间码</span><strong>${state.code}</strong><button id="copy">复制</button></div><button class="leave" id="leave">离开本机</button></header>
-    <section class="shift-strip"><div class="keeper ${state.currentPlayer === "sun" ? "active" : ""}"><span>☼</span><div><small>白昼班</small><strong>${escapeHtml(state.players.find((p) => p.id === "sun")?.name || "等待加入")}</strong></div></div><div class="shift-line"><span>DAY ${state.day}</span><i></i></div><div class="keeper ${state.currentPlayer === "moon" ? "active" : ""}"><span>◐</span><div><small>夜晚班</small><strong>${escapeHtml(state.players.find((p) => p.id === "moon")?.name || "等待加入")}</strong></div></div></section>
-    <section class="game-grid"><aside class="left-rail"><div class="panel world-panel"><p class="panel-title">店铺状态</p><div class="stat-grid">${stats(state)}</div><div class="weather"><span>窗外</span><strong>${state.weather}</strong></div></div><div class="panel history-panel"><p class="panel-title">这家店记得的事</p>${state.history.length ? state.history.slice(0, 4).map((entry) => `<article><small>${entry.label}</small><p>${entry.text}</p></article>`).join("") : '<p class="muted">故事还没发生。</p>'}</div></aside>
-      <section class="counter-panel">${state.lastOutcome ? `<div class="outcome"><span>上一班留下的变化</span><p>${state.lastOutcome}</p></div>` : ""}${state.note ? `<div class="note-tape"><small>${escapeHtml(partner?.name || "上一班")} 的便签</small><p>“${escapeHtml(state.note)}”</p></div>` : ""}${myTurn ? activeShift() : waiting(partner)}${view.error ? `<p class="error game-error">${escapeHtml(view.error)}</p>` : ""}</section>
-      <aside class="right-rail panel"><p class="panel-title">货架</p><div class="inventory-list">${state.inventory.map((item) => `<div class="inventory-row ${item.count ? "" : "empty"}"><span>${item.icon}</span><strong>${item.name}</strong><em>× ${item.count}</em></div>`).join("")}</div><div class="world-rule"><span>随机世界规则</span><p>顾客、天气、库存和旧选择会重新组合。这里没有固定剧本，也没有标准答案。</p></div><small class="turn-count">第 ${state.turn + 1} 次营业 · ${escapeHtml(me?.name)} 的设备</small></aside></section></main>`;
-}
-
-function activeShift() {
-  const state = view.state;
-  return `<div class="visitor-scene"><div class="visitor-halo"></div><div class="visitor-icon">${state.event.visitorIcon}</div><div class="visitor-name"><small>${state.event.title}</small><strong>${state.event.visitor}</strong></div></div><div class="dialogue"><p>“${state.event.line}”</p><small>线索：${state.event.clue}</small></div><div class="choices"><p class="choice-heading">你准备递给对方什么？</p><div class="choice-grid">${state.event.choices.map((id) => { const item = state.inventory.find((x) => x.id === id); return `<button class="item-card ${view.selected === id ? "selected" : ""}" data-item="${id}" ${item.count < 1 ? "disabled" : ""}><span class="item-icon">${item.icon}</span><strong>${item.name}</strong><small>${item.hint}</small><em>店里还有 ${item.count}</em></button>`; }).join("")}</div></div><div class="handoff-box"><label>留给下一班的话 <span id="count">0/20</span></label><div><input id="note" maxlength="20" placeholder="这把伞可能见过海……"><button id="handoff" ${!view.selected || view.busy ? "disabled" : ""}>${view.busy ? "交班中…" : state.players.length < 2 ? "先添加 Demo 伙伴" : "确认选择并交班"}</button></div>${state.players.length < 2 ? '<button class="demo-partner" id="demo-partner">＋ 添加 Demo 伙伴，在本机模拟另一时区</button>' : ""}</div>`;
-}
-
-function waiting(partner) {
-  const localDemo = storageMode === "local";
-  return `<div class="waiting-scene"><div class="clock-orbit"><span>${view.session.playerId === "sun" ? "☼" : "◐"}</span></div><p class="eyebrow">SHIFT HANDED OVER</p><h2>店门在另一个时区亮着</h2><p>${partner ? `现在轮到 ${escapeHtml(partner.name)} 接待下一位客人。` : "把房间码发给朋友，等对方加入夜晚班。"}</p><button class="primary" id="refresh">看看有没有新变化</button>${localDemo && partner ? '<button class="text-button" id="switch-demo">本机切换为另一位店员</button>' : ""}</div>`;
-}
-
-function render() {
-  document.querySelector("#app").innerHTML = view.state && view.session ? game() : landing();
-  bind();
-}
-
-function bind() {
-  document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => { view.mode = button.dataset.mode; view.error = ""; render(); }));
-  document.querySelector("#enter")?.addEventListener("click", enter);
-  document.querySelectorAll("[data-item]").forEach((button) => button.addEventListener("click", () => { view.selected = button.dataset.item; render(); }));
-  document.querySelector("#note")?.addEventListener("input", (event) => { document.querySelector("#count").textContent = `${event.target.value.length}/20`; });
-  document.querySelector("#handoff")?.addEventListener("click", handoff);
-  document.querySelector("#demo-partner")?.addEventListener("click", async () => { view.state = await addDemoPartner(view.session); render(); });
-  document.querySelector("#refresh")?.addEventListener("click", refresh);
-  document.querySelector("#switch-demo")?.addEventListener("click", switchDemo);
-  document.querySelector("#copy")?.addEventListener("click", () => navigator.clipboard?.writeText(view.state.code));
-  document.querySelector("#leave")?.addEventListener("click", () => { clearSession(); Object.assign(view, { state: null, session: null, selected: null }); render(); });
-}
-
-async function enter() {
-  const name = document.querySelector("#name").value.trim();
-  const code = document.querySelector("#code")?.value.trim().toUpperCase();
-  if (!name || (view.mode === "join" && code.length !== 6)) { view.error = "请填好值班名和六位房间码"; return render(); }
-  view.busy = true; render();
-  try {
-    const result = view.mode === "create" ? await createRoom(name) : await joinRoom(code, name);
-    view.state = result.state; view.session = result.session; view.selected = null; view.error = ""; saveSession(result.session);
-  } catch (error) { view.error = error.message || "便利店暂时停电了"; }
-  view.busy = false; render();
-}
-
-async function handoff() {
-  if (view.state.players.length < 2) return;
-  const note = document.querySelector("#note")?.value || "";
-  view.busy = true; render();
-  try { view.state = await act(view.session, view.selected, note); view.selected = null; view.error = ""; }
-  catch (error) { view.error = error.message || "交班失败"; }
-  view.busy = false; render();
-}
-
-async function refresh() {
-  try { view.state = await loadRoom(view.session); view.error = ""; }
-  catch (error) { view.error = error.message; }
-  render();
-}
-
-async function switchDemo() {
-  const other = view.state.players.find((player) => player.id !== view.session.playerId);
-  if (!other) return;
-  view.session = { code: view.state.code, token: other.token, playerId: other.id };
-  saveSession(view.session); render();
-}
-
-export async function mountApp() {
-  view.session = getSession();
-  if (view.session) {
-    try { view.state = await loadRoom(view.session); }
-    catch { clearSession(); view.session = null; }
-  }
-  render();
-  setInterval(async () => { if (view.session && view.state?.currentPlayer !== view.session.playerId) await refresh(); }, 10000);
-}
+import {act,addDemoPartner,clearSession,createRoom,getSession,joinRoom,loadRoom,saveSession,storageMode} from "./storage.js";
+import {migrateState} from "./game.js";
+const view={state:null,session:null,mode:"home",selected:null,busy:false,error:""};
+const esc=(v="")=>String(v).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[c]);
+const levels=["街角小卖部","社区中超","城市旗舰店","欧洲中超总部"];
+function landing(){return `<main class="landing-shell"><div class="grain"></div><nav class="landing-nav"><b>🇨🇳 中超合伙人</b><span>双人倒时差经营冒险</span></nav><section class="landing"><div class="landing-copy"><p class="eyebrow">FROM ONE SHOP TO ALL OF EUROPE</p><h1>欧洲<br>中超之王</h1><p class="intro">你管白天，朋友守夜班。从伦敦一家小店开始：卖中国零食、跑仓库进货、应付街区麻烦，再把分店开遍英国和欧洲。</p><div class="landing-actions"><button class="primary" data-mode="create">开始创业 →</button><button class="text-button" data-mode="join">输入房间码加入合伙</button></div><p class="mode-note">${storageMode==="cloud"?"已连接云端，可在两台设备接班。":"本地试玩模式，可添加 Demo 合伙人。"}</p></div><div class="store-window"><div class="moon">🌙</div><div class="awning"><i></i><i></i><i></i><i></i><i></i></div><div class="store-sign">好运来中超<small>ASIAN FOOD · OPEN LATE</small></div><div class="window-pane"><span class="shelf shelf-a">🍜　🌶️　🥟</span><span class="clerk">🧑‍💼</span><span class="shelf shelf-b">🧋　🍲　🍚</span></div><div class="door"><span>OPEN</span></div></div></section>${view.mode==="home"?"":entry()}</main>`;}
+function entry(){const j=view.mode==="join";return `<div class="modal-backdrop"><section class="entry-card"><button class="close" data-mode="home">×</button><p class="eyebrow">${j?"JOIN BUSINESS":"NEW BUSINESS"}</p><h2>${j?"加入朋友的中超":"给你的第一家店起步"}</h2><label>合伙人名字<input id="name" maxlength="12" placeholder="例如：小林"></label>${j?'<label>六位房间码<input id="code" class="code-input" maxlength="6" placeholder="LONDON"></label>':""}${view.error?`<p class="error">${esc(view.error)}</p>`:""}<button class="primary wide" id="enter">${view.busy?"正在开门…":j?"加入合伙":"租下第一家小店"}</button></section></div>`;}
+function game(){const s=migrateState(view.state);view.state=s;const me=s.players.find(p=>p.id===view.session.playerId),partner=s.players.find(p=>p.id!==view.session.playerId),mine=s.currentPlayer===view.session.playerId;const target=[260,600,1200,1200][s.level-1];return `<main class="game-shell"><div class="grain"></div><header class="game-header"><div><p class="eyebrow">${s.city}</p><h1>🏪 ${s.storeName}</h1></div><div class="room-chip"><span>合伙房间码</span><strong>${s.code}</strong><button id="copy">复制</button></div><button class="leave" id="leave">退出</button></header><section class="biz-bar"><div><small>店铺等级</small><b>LV.${s.level} ${levels[s.level-1]}</b></div><div class="progress"><i style="width:${s.level===4?100:Math.min(100,s.cash/target*100)}%"></i></div><span>${s.level===4?"已称霸欧洲！":`赚到 £${target} 升级`}</span></section><section class="game-grid"><aside class="left-rail"><div class="panel money"><small>店铺资金</small><strong>£${s.cash}</strong><em>目标：扩张到全欧洲</em></div><div class="panel dashboard"><p class="panel-title">经营状况</p><div><span>⭐ 口碑</span><b>${s.fame}</b></div><div><span>⚠️ 街区风险</span><b>${s.risk}</b></div><div><span>🕵️ 情报</span><b>${s.intel}</b></div></div><div class="panel history-panel"><p class="panel-title">合伙日志</p>${s.history.slice(0,3).map(h=>`<article><small>${h.label}</small><p>${h.text}</p></article>`).join("")||'<p class="muted">第一天开门营业。</p>'}</div></aside><section class="counter-panel">${s.lastOutcome?`<div class="outcome"><span>上一班战报</span><p>${s.lastOutcome}</p></div>`:""}${s.note?`<div class="note-tape"><small>${esc(partner?.name||"合伙人")} 留言</small><p>“${esc(s.note)}”</p></div>`:""}${mine?turn(s):waiting(partner)}${view.error?`<p class="error game-error">${esc(view.error)}</p>`:""}</section><aside class="right-rail panel"><p class="panel-title">欧洲扩张地图</p><div class="map-stop on">📍 伦敦东区<small>正在经营</small></div><div class="map-line"></div><div class="map-stop ${s.level>=2?"on":""}">🇬🇧 曼彻斯特<small>LV.2 解锁</small></div><div class="map-line"></div><div class="map-stop ${s.level>=3?"on":""}">🇫🇷 巴黎<small>LV.3 解锁</small></div><div class="map-line"></div><div class="map-stop ${s.level>=4?"on":""}">🇩🇪🇮🇹 欧洲市场<small>LV.4 解锁</small></div><div class="partner-card"><small>今日班次</small><b>${s.currentPlayer==="sun"?"☀️ 白班经营":"🌙 夜班探险"}</b><span>第 ${s.day} 天</span></div></aside></section></main>`;}
+function turn(s){const e=s.event,chosen=e.choices.find(c=>c.id===view.selected);return `<div class="mission-head"><span class="mission-type">${e.type==="sale"?"柜台订单":"街区事件"}</span><b>当前任务：${e.goal}</b></div><div class="scene-card"><div class="person">${e.icon}</div><div><small>${e.title}</small><h2>${e.who}</h2><p>“${e.text}”</p></div></div><p class="choice-heading">你要怎么做？选择一个方案：</p><div class="choice-grid">${e.choices.map(c=>`<button class="item-card ${view.selected===c.id?"selected":""}" data-item="${c.id}"><span class="item-icon">${c.icon}</span><strong>${c.label}</strong><small>${c.detail}</small><em>${c.cash>=0?`预计收入 £${c.cash}`:`需要支付 £${-c.cash}`}</em></button>`).join("")}</div>${chosen?`<div class="decision"><b>你的决定：${chosen.label}</b><span>${chosen.detail}</span></div>`:""}<div class="handoff-box"><label>给下一班合伙人留言 <span id="count">0/30</span></label><div><input id="note" maxlength="30" placeholder="例如：后门有人盯着，今晚小心"><button id="handoff" ${!view.selected||view.busy?"disabled":""}>${s.players.length<2?"先添加 Demo 合伙人":"执行决定并交班"}</button></div>${s.players.length<2?'<button class="demo-partner" id="demo-partner">＋ 添加 Demo 合伙人，立即继续玩</button>':""}</div>`;}
+function waiting(p){return `<div class="waiting-scene"><div class="clock-orbit"><span>🚚</span></div><p class="eyebrow">SHIFT HANDED OVER</p><h2>合伙人正在另一时区经营</h2><p>${p?`现在轮到 ${esc(p.name)} 处理下一件事。`:"把房间码发给你的合伙人。"}</p><button class="primary" id="refresh">刷新战报</button>${storageMode==="local"&&p?'<button class="text-button" id="switch-demo">切换成另一位合伙人继续玩</button>':""}</div>`;}
+function render(){document.querySelector("#app").innerHTML=view.state&&view.session?game():landing();bind();}
+function bind(){document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{view.mode=b.dataset.mode;view.error="";render()});document.querySelector("#enter")?.addEventListener("click",enter);document.querySelectorAll("[data-item]").forEach(b=>b.onclick=()=>{view.selected=b.dataset.item;render()});document.querySelector("#note")?.addEventListener("input",e=>document.querySelector("#count").textContent=`${e.target.value.length}/30`);document.querySelector("#handoff")?.addEventListener("click",handoff);document.querySelector("#demo-partner")?.addEventListener("click",async()=>{view.state=await addDemoPartner(view.session);render()});document.querySelector("#refresh")?.addEventListener("click",refresh);document.querySelector("#switch-demo")?.addEventListener("click",switchDemo);document.querySelector("#copy")?.addEventListener("click",()=>navigator.clipboard?.writeText(view.state.code));document.querySelector("#leave")?.addEventListener("click",()=>{clearSession();Object.assign(view,{state:null,session:null,selected:null});render()});}
+async function enter(){const n=document.querySelector("#name").value.trim(),c=document.querySelector("#code")?.value.trim().toUpperCase();if(!n||(view.mode==="join"&&c.length!==6)){view.error="请填写名字和六位房间码";return render()}view.busy=true;render();try{const r=view.mode==="create"?await createRoom(n):await joinRoom(c,n);view.state=r.state;view.session=r.session;view.selected=null;view.error="";saveSession(r.session)}catch(e){view.error=e.message||"开店失败"}view.busy=false;render();}
+async function handoff(){if(view.state.players.length<2)return;const n=document.querySelector("#note")?.value||"";view.busy=true;try{view.state=await act(view.session,view.selected,n);view.selected=null;view.error=""}catch(e){view.error=e.message}view.busy=false;render();}
+async function refresh(){try{view.state=await loadRoom(view.session);view.error=""}catch(e){view.error=e.message}render();}
+async function switchDemo(){const o=view.state.players.find(p=>p.id!==view.session.playerId);if(!o)return;view.session={code:view.state.code,token:o.token,playerId:o.id};saveSession(view.session);render();}
+export async function mountApp(){view.session=getSession();if(view.session){try{view.state=await loadRoom(view.session)}catch{clearSession();view.session=null}}render();setInterval(async()=>{if(view.session&&view.state?.currentPlayer!==view.session.playerId)await refresh()},10000);}

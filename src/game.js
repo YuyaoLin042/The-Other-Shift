@@ -1,105 +1,66 @@
 export const ITEM_LIBRARY = [
-  { id: "coffee", name: "热咖啡", icon: "☕", hint: "杯壁一直很暖", tags: ["warm", "awake", "memory"], price: 4 },
-  { id: "umbrella", name: "红雨伞", icon: "☂", hint: "伞尖沾着盐粒", tags: ["shelter", "sea", "hiding"], price: 6 },
-  { id: "battery", name: "旧电池", icon: "▣", hint: "还有微弱电流", tags: ["light", "machine", "lost"], price: 5 },
-  { id: "sardine", name: "沙丁鱼罐头", icon: "◇", hint: "来自没有标记的海域", tags: ["food", "sea", "animal"], price: 5 },
-  { id: "thread", name: "蓝色线团", icon: "◉", hint: "拉开后似乎没有尽头", tags: ["repair", "memory", "path"], price: 3 },
-  { id: "salt", name: "一小袋盐", icon: "△", hint: "在月光下有点亮", tags: ["food", "protection", "sea"], price: 2 },
-  { id: "match", name: "防风火柴", icon: "╱", hint: "一盒只有三根", tags: ["light", "warm", "signal"], price: 4 },
-  { id: "ticket", name: "过期车票", icon: "▤", hint: "终点站被擦掉了", tags: ["path", "lost", "memory"], price: 1 },
+  { id: "noodles", name: "老坛方便面", icon: "🍜", hint: "留学生夜宵爆款", price: 3 },
+  { id: "laoganma", name: "辣椒酱", icon: "🌶️", hint: "本地邻居也会上瘾", price: 5 },
+  { id: "dumplings", name: "速冻饺子", icon: "🥟", hint: "华人家庭必囤", price: 7 },
+  { id: "milk_tea", name: "珍珠奶茶", icon: "🧋", hint: "年轻顾客最爱拍照", price: 6 },
+  { id: "hotpot", name: "火锅底料", icon: "🍲", hint: "周末聚会畅销品", price: 9 },
+  { id: "rice", name: "东北大米", icon: "🍚", hint: "利润不高但很稳", price: 12 },
 ];
 
-const VISITORS = [
-  { name: "鞋子全湿的邮差", icon: "♟", title: "没有收件地址", lines: ["我有一封信要送到明天，但末班车刚刚开走。", "这封信越来越轻了。再找不到路，它就会消失。"], needs: ["path", "signal", "lost"], strange: 2 },
-  { name: "戴潜水镜的小女孩", icon: "♙", title: "头发还在滴水", lines: ["海底那家店今天没开门。你们这里卖可以呼吸的东西吗？", "有一条鱼托我买点东西，但我忘了它怕冷还是怕黑。"], needs: ["sea", "warm", "animal"], strange: 5 },
-  { name: "没有影子的上班族", icon: "♜", title: "影子还没下班", lines: ["我的影子留在公司加班了，我得给它带点能找到家的东西。", "请给我一样不会在镜子里出现的东西。"], needs: ["light", "path", "hiding"], strange: 4 },
-  { name: "反复看表的狐狸", icon: "♞", title: "比时钟快七分钟", lines: ["冬天提前到了，我答应给洞里带晚饭。", "我只停三十秒，但想买一段很长的路。"], needs: ["food", "warm", "path"], strange: 3 },
-  { name: "生锈的送货机器人", icon: "♝", title: "胸口传来海浪声", lines: ["导航说这里是港口。请帮我重新亮起来。", "我的收货人已经搬走二十年了，但包裹还在呼吸。"], needs: ["machine", "light", "sea"], strange: 4 },
-  { name: "带着空鱼缸的老人", icon: "♚", title: "鱼缸里像在下雨", lines: ["我养的云跑出去了，留下的洞越来越冷。", "这里面曾经有一场暴雨。我想记得它。"], needs: ["warm", "memory", "repair"], strange: 3 },
-  { name: "穿礼服的乌鸦", icon: "♛", title: "来参加迟到的婚礼", lines: ["新郎不知道自己是一座灯塔，我需要一件能提醒他的礼物。", "婚礼在退潮后开始。请给我一样不会被海水带走的东西。"], needs: ["signal", "sea", "memory"], strange: 5 },
-  { name: "停电街区的邻居", icon: "♧", title: "怀里抱着一盆植物", lines: ["整条街都黑了，只有它还醒着。", "它好像记得太阳，你有没有能让它放心的东西？"], needs: ["light", "warm", "protection"], strange: 1 },
-  { name: "带雪进门的旅人", icon: "♤", title: "地图上没有来处", lines: ["我走过的路正在身后消失。可以卖给我一样不会忘记方向的东西吗？", "外面不是冬天，雪却只跟着我。"], needs: ["path", "memory", "warm"], strange: 4 },
+const EVENTS = [
+  { type:"sale", icon:"👩‍🎓", who:"赶论文的中国留学生", title:"还有十分钟宿舍就关门", text:"老板！给我来点能熬过今晚的，越快越好！", goal:"卖出夜宵", choices:[
+    {id:"noodles",label:"泡面 + 辣椒酱",icon:"🍜",detail:"便宜、稳妥，学生会再来",cash:18,fame:5,risk:0},
+    {id:"milk_tea",label:"奶茶加双份珍珠",icon:"🧋",detail:"利润更高，但不太顶饿",cash:22,fame:2,risk:0},
+    {id:"rice",label:"推荐一袋东北大米",icon:"🍚",detail:"她显然没时间做饭",cash:10,fame:-3,risk:0},
+  ]},
+  { type:"sale", icon:"👵", who:"第一次进中超的英国奶奶", title:"拿着一张孙女写的购物单", text:"请问“老干妈”是一位很厉害的女士吗？我想买她做的酱。", goal:"帮她买对商品", choices:[
+    {id:"laoganma",label:"递上经典辣椒酱",icon:"🌶️",detail:"解释吃法，再送一张菜谱",cash:26,fame:8,risk:0},
+    {id:"hotpot",label:"推荐麻辣火锅底料",icon:"🍲",detail:"可能太辣，但利润不错",cash:30,fame:-2,risk:0},
+    {id:"dumplings",label:"请她试吃煎饺",icon:"🥟",detail:"少赚一点，可能带来新客",cash:16,fame:10,risk:0},
+  ]},
+  { type:"street", icon:"🧥", who:"街区里收“清洁费”的人", title:"两个人堵在后门卸货区", text:"新店开张，总得有人帮你照看货车。每周五十镑，大家都省事。", goal:"处理街区麻烦", choices:[
+    {id:"pay",label:"先付一次，套他们的话",icon:"💷",detail:"损失现金，但获得街区线索",cash:-35,fame:0,risk:-4,intel:2},
+    {id:"alliance",label:"联系隔壁店主一起拒绝",icon:"🤝",detail:"抱团更安全，也赢得口碑",cash:-8,fame:12,risk:5,intel:1},
+    {id:"police",label:"保存监控并报警",icon:"📹",detail:"合法稳妥，但他们可能记住你",cash:0,fame:5,risk:10,intel:2},
+  ]},
+  { type:"supply", icon:"🚚", who:"深夜抵达的冷链货车", title:"司机说海关耽误了六小时", text:"饺子开始解冻。现在收货能半价，不收就要空一周货架。", goal:"决定是否冒险进货", choices:[
+    {id:"reject",label:"拒收问题冷冻货",icon:"🛑",detail:"守住食品安全，暂时少赚钱",cash:-5,fame:8,risk:-5},
+    {id:"inspect",label:"现场测温，只收合格箱",icon:"🌡️",detail:"花时间检查，风险和收益平衡",cash:28,fame:5,risk:2},
+    {id:"cheap",label:"全部半价收下",icon:"📦",detail:"利润巨大，食品风险也巨大",cash:65,fame:-8,risk:18},
+  ]},
+  { type:"explore", icon:"🗺️", who:"合伙人的夜间踩点", title:"地铁末班车前还能去一个地方", text:"今晚去哪里寻找下一家店的机会？", goal:"探索伦敦街区", choices:[
+    {id:"chinatown",label:"唐人街餐馆后巷",icon:"🏮",detail:"容易找到便宜供应商",cash:18,fame:3,risk:7,intel:2},
+    {id:"campus",label:"大学城学生公寓",icon:"🎓",detail:"调查年轻人的口味",cash:8,fame:10,risk:1,intel:2},
+    {id:"warehouse",label:"东区废弃仓库",icon:"🏭",detail:"可能找到低价铺面，也可能遇上麻烦",cash:38,fame:0,risk:13,intel:3},
+  ]},
 ];
 
-const WEATHERS = ["薄雾贴着玻璃", "雨正横着落", "月亮异常地近", "风把招牌吹得轻响", "远处似乎在退潮", "街灯一盏接一盏熄灭", "空气里有烤面包味"];
-const NEED_NAMES = { warm: "温暖", awake: "清醒", memory: "记忆", shelter: "遮蔽", sea: "海", hiding: "隐藏", light: "光", machine: "机器", lost: "迷路", food: "食物", animal: "动物", repair: "修补", path: "道路", protection: "保护", signal: "信号" };
-const pick = (list) => list[Math.floor(Math.random() * list.length)];
-const clamp = (value) => Math.max(0, Math.min(99, value));
-
-export function generateCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const clamp = (n,min=0,max=100)=>Math.max(min,Math.min(max,n));
+export function generateCode(){const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";return Array.from({length:6},()=>pick(a)).join("");}
+function levelFor(cash){return cash>=1200?4:cash>=600?3:cash>=260?2:1;}
+export function makeEvent(state){
+  let pool=EVENTS;
+  if(state.turn<2) pool=EVENTS.filter(e=>e.type==="sale");
+  else if(state.currentPlayer==="moon") pool=EVENTS.filter(e=>e.type!=="sale");
+  return structuredClone(pick(pool));
 }
-
-export function makeEvent(state) {
-  let pool = VISITORS;
-  if (state?.oddness > 45) pool = VISITORS.filter((visitor) => visitor.strange >= 4);
-  if (state?.warmth < 30) pool = VISITORS.filter((visitor) => visitor.needs.includes("warm") || visitor.needs.includes("light"));
-  const visitor = pick(pool.length ? pool : VISITORS);
-  const need = pick(visitor.needs);
-  const available = (state?.inventory || ITEM_LIBRARY.map((item) => ({ ...item, count: 2 }))).filter((item) => item.count > 0);
-  const matching = available.filter((item) => item.tags.includes(need));
-  const choices = new Set();
-  if (matching.length) choices.add(pick(matching).id);
-  while (choices.size < Math.min(3, available.length)) choices.add(pick(available).id);
-  return { visitor: visitor.name, visitorIcon: visitor.icon, title: visitor.title, line: pick(visitor.lines), clue: `对方似乎需要与「${NEED_NAMES[need]}」有关的东西`, need, strange: visitor.strange, choices: [...choices] };
+export function createInitialState(code,name,token){const s={version:2,code,day:1,turn:0,currentPlayer:"sun",players:[{id:"sun",name,token}],cash:120,fame:5,risk:8,intel:0,level:1,city:"伦敦 · 东区",storeName:"好运来食品店",inventory:ITEM_LIBRARY.map(x=>({...x,count:3})),event:null,note:"",lastOutcome:"",history:[]};s.event=makeEvent(s);return s;}
+export function migrateState(old){
+  if(old?.version===2)return old;
+  const s=createInitialState(old.code,old.players?.[0]?.name||"店长",old.players?.[0]?.token);
+  s.players=old.players||s.players;s.currentPlayer=old.currentPlayer||"sun";s.day=old.day||1;s.turn=old.turn||0;s.cash=Math.max(120,(old.coins||0)*5);return s;
 }
-
-export function createInitialState(code, name, token) {
-  const state = {
-    code, day: 1, turn: 0, currentPlayer: "sun",
-    players: [{ id: "sun", name, token }],
-    coins: 24, warmth: 58, oddness: 7, reputation: 10,
-    weather: pick(WEATHERS),
-    inventory: ITEM_LIBRARY.map((item, index) => ({ ...item, count: index < 6 ? 2 : 1 })),
-    event: null, note: "", lastOutcome: "", history: [],
-  };
-  state.event = makeEvent(state);
-  return state;
+export function resolveTurn(raw,actorId,choiceId,note){
+  const next=structuredClone(migrateState(raw));const actor=next.players.find(p=>p.id===actorId);
+  if(!actor||next.currentPlayer!==actorId)throw new Error("现在轮到另一位合伙人值班");
+  const choice=next.event.choices.find(c=>c.id===choiceId);if(!choice)throw new Error("请先选择一个行动");
+  next.cash=Math.max(0,next.cash+choice.cash);next.fame=clamp(next.fame+choice.fame);next.risk=clamp(next.risk+choice.risk);next.intel=Math.max(0,next.intel+(choice.intel||0));
+  const oldLevel=next.level;next.level=levelFor(next.cash);
+  const result=choice.cash>=0?`收入 £${choice.cash}`:`支出 £${Math.abs(choice.cash)}`;
+  next.lastOutcome=`${actor.name}选择了「${choice.label}」：${result}，口碑${choice.fame>=0?"+":""}${choice.fame}。${next.level>oldLevel?" 店铺可以升级了！":""}`;
+  next.note=(note||"").slice(0,30);next.history.unshift({id:crypto.randomUUID(),label:`第 ${next.day} 天 · ${actor.name}`,text:next.lastOutcome});next.history=next.history.slice(0,8);
+  next.turn++;next.currentPlayer=next.currentPlayer==="sun"?"moon":"sun";if(next.currentPlayer==="sun")next.day++;
+  next.event=makeEvent(next);return next;
 }
-
-function makeOutcome(event, item, matched, state) {
-  const good = [
-    `${event.visitor}接过${item.name}，像是早就知道你会这样选。门外的${state.weather}短暂停了一下。`,
-    `${item.name}刚碰到柜台，${event.visitor}便露出放心的神情。对方留下几枚陌生硬币，转身走进街灯照不到的地方。`,
-    `${event.visitor}把${item.name}仔细收好。几分钟后，店里的旧收音机自动报出了明天的天气。`,
-  ];
-  const odd = [
-    `${event.visitor}盯着${item.name}看了很久，还是把它带走了。第二天，货架上多出了一样一模一样的东西。`,
-    `${item.name}似乎并非对方真正需要的东西，但${event.visitor}笑了。门外从此多了一串走向墙里的脚印。`,
-    `${event.visitor}没有付钱，只在柜台上留下一粒会发热的沙。没人知道这算不算一笔好生意。`,
-  ];
-  return pick(matched ? good : odd);
-}
-
-export function resolveTurn(state, actorId, itemId, note) {
-  const next = structuredClone(state);
-  const actor = next.players.find((player) => player.id === actorId);
-  const item = next.inventory.find((candidate) => candidate.id === itemId);
-  if (!actor || next.currentPlayer !== actorId) throw new Error("现在是另一位店员的班次");
-  if (!item || item.count < 1) throw new Error("货架上已经没有这件东西了");
-  const matched = item.tags.includes(next.event.need);
-  const outcome = makeOutcome(next.event, item, matched, next);
-  item.count -= 1;
-  next.coins += matched ? item.price + 2 : Math.max(1, item.price - 1);
-  next.warmth = clamp(next.warmth + (matched ? 3 : -3));
-  next.reputation = clamp(next.reputation + (matched ? 4 : -1));
-  next.oddness = clamp(next.oddness + next.event.strange + (matched ? 0 : 3));
-  next.lastOutcome = outcome;
-  next.note = note.slice(0, 20);
-  next.history.unshift({ id: crypto.randomUUID(), label: `第 ${next.day} 天 · ${actor.name}`, text: outcome });
-  next.history = next.history.slice(0, 12);
-  next.turn += 1;
-  next.currentPlayer = next.currentPlayer === "sun" ? "moon" : "sun";
-  if (next.currentPlayer === "sun") next.day += 1;
-  if (Math.random() < 0.55) next.weather = pick(WEATHERS);
-  const empty = next.inventory.filter((candidate) => candidate.count < 1);
-  if (empty.length && Math.random() < 0.7) pick(empty).count += 1;
-  else if (Math.random() < 0.35) pick(next.inventory).count += 1;
-  next.event = makeEvent(next);
-  return next;
-}
-
-export function safeState(state) {
-  return { ...state, players: state.players.map(({ id, name }) => ({ id, name })), inventory: state.inventory.map(({ tags, price, ...item }) => item), event: (({ need, strange, ...event }) => event)(state.event) };
-}
+export function safeState(state){return migrateState(state);}
